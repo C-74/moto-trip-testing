@@ -17,6 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -131,5 +133,93 @@ public class RestTests {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].maxParticipants").value(2))
                 .andExpect(jsonPath("$[1].maxParticipants").value(4));
+    }
+
+    @Test
+    void shouldHandleTripFullError() throws Exception {
+        // Arrange
+        given(tripService.joinTrip(1L, 2L)).willThrow(new RuntimeException("Trip full"));
+
+        // Act & Assert
+        Exception exception = org.junit.jupiter.api.Assertions.assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(post("/api/trips/1/join").param("userId", "2"))
+        );
+        assertTrue(exception.getCause() instanceof RuntimeException);
+        assertEquals("Trip full", exception.getCause().getMessage());
+    }
+
+    @Test
+    void shouldHandlePremiumRefusedError() throws Exception {
+        // Arrange
+        given(tripService.joinTrip(1L, 2L)).willThrow(new RuntimeException("Premium required"));
+
+        // Act & Assert
+        Exception exception = org.junit.jupiter.api.Assertions.assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(post("/api/trips/1/join").param("userId", "2"))
+        );
+        assertEquals("Premium required", exception.getCause().getMessage());
+    }
+
+    @Test
+    void shouldHandleTripAlreadyStartedError() throws Exception {
+        // Arrange
+        given(tripService.joinTrip(1L, 2L)).willThrow(new RuntimeException("Trip already started"));
+
+        // Act & Assert
+        Exception exception = org.junit.jupiter.api.Assertions.assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(post("/api/trips/1/join").param("userId", "2"))
+        );
+        assertEquals("Trip already started", exception.getCause().getMessage());
+    }
+
+    @Test
+    void shouldHandleUserNotFoundError() throws Exception {
+        // Arrange
+        given(tripService.joinTrip(1L, 2L)).willThrow(new RuntimeException("User not found"));
+
+        // Act & Assert
+        Exception exception = org.junit.jupiter.api.Assertions.assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(post("/api/trips/1/join").param("userId", "2"))
+        );
+        assertEquals("User not found", exception.getCause().getMessage());
+    }
+
+    @Test
+    void shouldHandleTripNotFoundError() throws Exception {
+        // Arrange
+        given(tripService.joinTrip(1L, 2L)).willThrow(new RuntimeException("Trip not found"));
+
+        // Act & Assert
+        Exception exception = org.junit.jupiter.api.Assertions.assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(post("/api/trips/1/join").param("userId", "2"))
+        );
+        assertEquals("Trip not found", exception.getCause().getMessage());
+    }
+
+    @Test
+    void shouldHandleInvalidCapacityError() throws Exception {
+        // Arrange
+        given(tripService.createTrip("Voyage Nul", 0, false))
+                .willThrow(new IllegalArgumentException("Invalid capacity"));
+        
+        Map<String, Object> requestBody = Map.of(
+                "name", "Voyage Nul",
+                "maxParticipants", 0,
+                "premiumOnly", false
+        );
+
+        // Act & Assert
+        Exception exception = org.junit.jupiter.api.Assertions.assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(post("/api/trips")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestBody)))
+        );
+        assertEquals("Invalid capacity", exception.getCause().getMessage());
     }
 }

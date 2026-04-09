@@ -84,11 +84,27 @@ public class TripServiceTests {
         // Arrange
         when(tripRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // Act & Arrange
+        // Act & Assert
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
                 () -> tripService.joinTrip(1L, 2L)
         );
         assertEquals("Trip not found", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowInvalidCapacity() {
+        // Arrange
+        String name = "Voyage Impossible";
+        int invalidMax = 0;
+        boolean premiumOnly = false;
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> tripService.createTrip(name, invalidMax, premiumOnly)
+        );
+
+        assertEquals("Invalid capacity", exception.getMessage());
     }
 }
